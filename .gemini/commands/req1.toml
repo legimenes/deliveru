@@ -1,0 +1,6 @@
+description = "Criar mínimo servidor de autorização"
+prompt = """
+Aja como um especialista em .NET.
+Gere um planejamento para implementarmos um servidor de autorização com o mínimo de configurações necessárias utilizando o pacote Openiddict que já está instalado na aplicação. Não configure nada relacionado a banco de dados no momento.
+Salve este planejamento em um arquivo chamado plan1.toml nesta mesma pasta.
+"""

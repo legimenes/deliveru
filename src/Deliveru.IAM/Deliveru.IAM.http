@@ -1,0 +1,6 @@
+@Deliveru.IAM_HostAddress = http://localhost:5148
+
+GET {{Deliveru.IAM_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

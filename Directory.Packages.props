@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
+    <PackageVersion Include="OpenIddict.Core" Version="7.2.0" />
+    <PackageVersion Include="OpenIddict.Server.AspNetCore" Version="7.2.0" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,123 @@
+# Plan for OpenIddict Authorization Server Minimal Configuration (No Database)
+
+[[step]]
+id = 1
+description = "Adicionar os serviços do OpenIddict."
+details = "Configurar o OpenIddict para usar provedores em memória para armazenar aplicações cliente e tokens, o que é ideal para desenvolvimento e testes sem a necessidade de um banco de dados. Este é o core da configuração inicial do OpenIddict."
+file_path = "src/Deliveru.IAM/Program.cs"
+section = "Configuração de Serviços (builder.Services)"
+action = """
+builder.Services.AddOpenIddict()
+    // Register the OpenIddict core components.
+    .AddCore(options =>
+    {
+        // Configure OpenIddict to use the ASP.NET Core Identity's user and role managers.
+        options.UseIdentity<IdentityUser>(); // Especificar o tipo de usuário aqui
+
+        // Configure OpenIddict to use an in-memory store for applications and tokens.
+        options.UseInMemoryStores();
+    })
+    // Register the OpenIddict server components.
+    .AddServer(options =>
+    {
+        // Enable the token endpoint.
+        options.SetTokenEndpointUris("/connect/token");
+
+        // Enable the client credentials flow.
+        options.AllowClientCredentialsFlow();
+
+        // Register the signing and encryption credentials.
+        options.AddDevelopmentEncryptionCertificate()
+               .AddDevelopmentSigningCertificate();
+
+        // Register the ASP.NET Core host and configure the ASP.NET Core-specific options.
+        options.UseAspNetCore()
+               .EnableTokenEndpointPassthrough();
+    })
+    // Register the OpenIddict validation components.
+    .AddValidation(options =>
+    {
+        // Configure the OpenIddict validation components to use the local server.
+        options.UseLocalServer();
+
+        // Register the ASP.NET Core host.
+        options.UseAspNetCore();
+    });
+"""
+
+[[step]]
+id = 2
+description = "Configurar a autenticação e autorização do ASP.NET Core."
+details = "Adicionar os middlewares de autenticação e autorização ao pipeline de requisições. O `UseAuthentication()` deve vir antes do `UseAuthorization()`."
+file_path = "src/Deliveru.IAM/Program.cs"
+section = "Configuração do Pipeline (app.Use...)"
+action = """
+app.UseAuthentication();
+app.UseAuthorization();
+"""
+
+[[step]]
+id = 3
+description = "Configurar um cliente de teste e um usuário em memória (opcional, para teste rápido)."
+details = "Para fins de teste sem banco de dados, pode-se adicionar um cliente de teste em memória e um usuário para simular o fluxo de Client Credentials ou Password Grant (se habilitado). Isso deve ser feito APENAS em desenvolvimento e testes."
+file_path = "src/Deliveru.IAM/Program.cs"
+section = "Inicialização de Dados (após app.Run())"
+action = """
+// Exemplo de como adicionar um cliente de teste e usuário em memória
+// Isso deve ser feito APENAS em desenvolvimento e testes.
+// Em um ambiente de produção, clientes e usuários seriam persistidos em um banco de dados.
+
+using Microsoft.AspNetCore.Identity;
+using OpenIddict.Abstractions;
+using static OpenIddict.Abstractions.OpenIddictConstants;
+
+using var scope = app.Services.CreateScope();
+
+var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+var applicationManager = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
+
+// Create a test user if it doesn't exist
+if (await userManager.FindByNameAsync("testuser") is null)
+{
+    var user = new IdentityUser { UserName = "testuser", Email = "test@example.com" };
+    await userManager.CreateAsync(user, "Password123!");
+}
+
+// Create a test client application if it doesn't exist
+if (await applicationManager.FindByClientIdAsync("postman-client") is null)
+{
+    await applicationManager.CreateAsync(new OpenIddictApplicationDescriptor
+    {
+        ClientId = "postman-client",
+        ClientSecret = "postman-secret",
+        DisplayName = "Postman Client",
+        Permissions =
+        {
+            OpenIddictConstants.Permissions.Endpoints.Token,
+            OpenIddictConstants.Permissions.GrantTypes.ClientCredentials,
+            // Adicione outras permissões conforme necessário para outros fluxos
+            OpenIddictConstants.Permissions.GrantTypes.Password,
+            OpenIddictConstants.Permissions.Prefixes.Scope + "api"
+        }
+    });
+}
+"""
+
+[[step]]
+id = 4
+description = "Remover o serviço OpenAPI existente, pois OpenIddict terá seus próprios endpoints de descoberta/token."
+details = "O `builder.Services.AddOpenApi()` e `app.MapOpenApi()` são para endpoints REST genéricos. OpenIddict gerencia seus próprios endpoints `/connect/token`, `/connect/authorize`, `/connect/userinfo`, etc."
+file_path = "src/Deliveru.IAM/Program.cs"
+section = "Remoção de Código Existente"
+action_remove_old = """
+// Add services to the container.
+// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddOpenApi();
+"""
+action_remove_old_2 = """
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
+"""
